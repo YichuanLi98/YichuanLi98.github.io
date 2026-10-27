@@ -170,6 +170,13 @@ class AutomationContractTest(unittest.TestCase):
             with self.subTest(workflow=filename):
                 self.assertFalse((WORKFLOW_DIR / filename).exists())
 
+    def test_browser_workflows_pin_supported_ubuntu_runner(self):
+        for filename in ("cms-draft.yml", "site-quality.yml"):
+            with self.subTest(workflow=filename):
+                workflow = (WORKFLOW_DIR / filename).read_text(encoding="utf-8")
+                self.assertIn("runs-on: ubuntu-24.04", workflow)
+                self.assertNotIn("runs-on: ubuntu-latest", workflow)
+
     def test_cms_drafts_are_sanitized_validated_and_reported(self):
         workflow = (WORKFLOW_DIR / "cms-draft.yml").read_text(encoding="utf-8")
         for expected in (
