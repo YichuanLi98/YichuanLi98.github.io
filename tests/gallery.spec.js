@@ -76,20 +76,51 @@ test("desktop gallery opens, counts, closes, and restores focus", async ({ page 
 });
 
 
-test("mobile layout has no horizontal overflow and every image loads", async ({ page }) => {
+test("mobile layout has no horizontal overflow and every revealed image loads", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   const itemCount = await page.locator(".gallery-item").count();
   expect(itemCount).toBeGreaterThan(0);
-  await expect(page.locator(".gallery-image")).toHaveCount(itemCount);
-  await expect.poll(
-    () => page.locator(".gallery-image").evaluateAll((images) => images.every((image) => image.complete && image.naturalWidth > 0)),
-  ).toBe(true);
+  const images = page.locator(".gallery-image");
+  await expect(images).toHaveCount(itemCount);
+  for (let index = 0; index < itemCount; index += 1) {
+    const image = images.nth(index);
+    await image.scrollIntoViewIfNeeded();
+    await expect.poll(
+      () => image.evaluate((node) => node.complete && node.naturalWidth > 0),
+    ).toBe(true);
+  }
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
   }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+});
+
+
+test("gallery thumbnails use uniform four-by-five frames", async ({ page }) => {
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+
+    const frames = await page.locator(".gallery-image").evaluateAll((images) =>
+      images.map((image) => {
+        const bounds = image.getBoundingClientRect();
+        return { height: bounds.height, width: bounds.width };
+      }),
+    );
+
+    expect(frames.length).toBeGreaterThan(0);
+    const first = frames[0];
+    for (const frame of frames) {
+      expect(Math.abs(frame.width - first.width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(frame.height - first.height)).toBeLessThanOrEqual(1);
+      expect(frame.width / frame.height).toBeCloseTo(4 / 5, 2);
+    }
+  }
 });
 
 
