@@ -119,14 +119,13 @@ test("gallery thumbnail ratio follows the image orientation", async ({ page }) =
       ).toBe(true);
 
       const frame = await image.evaluate((node) => {
-        const bounds = node.getBoundingClientRect();
-        const itemBounds = node.closest(".gallery-item").getBoundingClientRect();
+        const item = node.closest(".gallery-item");
         return {
           classes: Array.from(node.classList),
-          height: bounds.height,
+          height: node.offsetHeight,
           isLandscape: node.naturalWidth > node.naturalHeight,
-          itemHeight: itemBounds.height,
-          width: bounds.width,
+          itemHeight: item.offsetHeight,
+          width: node.offsetWidth,
         };
       });
       const expectedClass = frame.isLandscape ? "is-landscape" : "is-portrait";
