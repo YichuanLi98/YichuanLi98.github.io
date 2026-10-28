@@ -16,4 +16,3 @@ Keep the gallery orderly while respecting whether each photograph was composed h
 ## Approach
 
 Use the existing gallery JavaScript to classify each thumbnail after the image dimensions are available, then apply orientation-specific CSS classes. This avoids adding an orientation field to every work or asking the user to classify future uploads manually. A short layout adjustment may occur when a lazy-loaded landscape image is first revealed; keeping authoring automatic is preferred over maintaining duplicate metadata.
-

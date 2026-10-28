@@ -60,4 +60,3 @@ Run the focused browser assertion at desktop and mobile widths, then run the com
 git add assets/js/gallery.js assets/css/gallery.css tests/gallery.spec.js docs/superpowers
 git commit -m "feat: size thumbnails by image orientation"
 ```
-
