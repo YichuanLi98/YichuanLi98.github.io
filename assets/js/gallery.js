@@ -4,6 +4,29 @@
     return;
   }
 
+  const galleryImages = galleryItems
+    .map((item) => item.querySelector(".gallery-image"))
+    .filter(Boolean);
+
+  function applyImageOrientation(image) {
+    if (!image.naturalWidth || !image.naturalHeight) {
+      return;
+    }
+
+    const isLandscape = image.naturalWidth > image.naturalHeight;
+    image.classList.toggle("is-landscape", isLandscape);
+    image.classList.toggle("is-portrait", !isLandscape);
+  }
+
+  galleryImages.forEach((image) => {
+    if (image.complete) {
+      applyImageOrientation(image);
+      return;
+    }
+
+    image.addEventListener("load", () => applyImageOrientation(image), { once: true });
+  });
+
   const lightbox = document.querySelector("#gallery-lightbox");
   if (!lightbox) {
     return;

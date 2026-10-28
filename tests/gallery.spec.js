@@ -98,7 +98,7 @@ test("mobile layout has no horizontal overflow and every revealed image loads", 
 });
 
 
-test("gallery thumbnails use uniform four-by-five frames", async ({ page }) => {
+test("gallery thumbnail ratio follows the image orientation", async ({ page }) => {
   for (const viewport of [
     { width: 1440, height: 900 },
     { width: 390, height: 844 },
@@ -106,20 +106,47 @@ test("gallery thumbnails use uniform four-by-five frames", async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.goto("/");
 
-    const frames = await page.locator(".gallery-image").evaluateAll((images) =>
-      images.map((image) => {
-        const bounds = image.getBoundingClientRect();
-        return { height: bounds.height, width: bounds.width };
-      }),
-    );
+    const images = page.locator(".gallery-image");
+    const imageCount = await images.count();
+    let landscapeCount = 0;
+    let portraitCount = 0;
 
-    expect(frames.length).toBeGreaterThan(0);
-    const first = frames[0];
-    for (const frame of frames) {
-      expect(Math.abs(frame.width - first.width)).toBeLessThanOrEqual(1);
-      expect(Math.abs(frame.height - first.height)).toBeLessThanOrEqual(1);
-      expect(frame.width / frame.height).toBeCloseTo(4 / 5, 2);
+    for (let index = 0; index < imageCount; index += 1) {
+      const image = images.nth(index);
+      await image.scrollIntoViewIfNeeded();
+      await expect.poll(
+        () => image.evaluate((node) => node.complete && node.naturalWidth > 0),
+      ).toBe(true);
+
+      const frame = await image.evaluate((node) => {
+        const item = node.closest(".gallery-item");
+        return {
+          classes: Array.from(node.classList),
+          height: node.offsetHeight,
+          isLandscape: node.naturalWidth > node.naturalHeight,
+          itemHeight: item.offsetHeight,
+          width: node.offsetWidth,
+        };
+      });
+      const expectedClass = frame.isLandscape ? "is-landscape" : "is-portrait";
+      const expectedRatio = frame.isLandscape ? 4 / 3 : 3 / 4;
+
+      landscapeCount += frame.isLandscape ? 1 : 0;
+      portraitCount += frame.isLandscape ? 0 : 1;
+      expect(frame.classes).toContain(expectedClass);
+      expect(frame.width / frame.height).toBeCloseTo(expectedRatio, 2);
+      expect(Math.abs(frame.itemHeight - frame.height)).toBeLessThanOrEqual(1);
     }
+
+    expect(landscapeCount).toBeGreaterThan(0);
+    expect(portraitCount).toBeGreaterThan(0);
+
+    await page.locator(".gallery-item").first().click();
+    await expect(page.locator("#gallery-lightbox")).toBeVisible();
+    await expect.poll(
+      () => page.locator(".lightbox-image").evaluate((image) => getComputedStyle(image).objectFit),
+    ).toBe("contain");
+    await page.keyboard.press("Escape");
   }
 });
 
