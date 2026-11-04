@@ -307,6 +307,18 @@ a {
   aspect-ratio: 3 / 4;
 }
 
+.gallery[data-category="painting"] .gallery-image.painting-square {
+  aspect-ratio: 1 / 1;
+}
+
+.gallery[data-category="painting"] .gallery-image.painting-portrait {
+  aspect-ratio: 1 / 2;
+}
+
+.gallery[data-category="painting"] .gallery-image.painting-landscape {
+  aspect-ratio: 2 / 1;
+}
+
 .gallery-item {
   overflow: visible;
 }

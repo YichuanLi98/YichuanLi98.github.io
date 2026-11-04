@@ -79,6 +79,9 @@
     const title = value(entry, "title", "Untitled");
     const alt = value(entry, "alt", title);
     const category = value(entry, "category", "artwork");
+    const displayRatio = value(entry, "display_ratio");
+    const ratioClass =
+      category === "painting" && displayRatio ? ` painting-${displayRatio}` : "";
 
     return h(
       "section",
@@ -99,7 +102,7 @@
           h("span", { className: "work-number", "aria-hidden": "true" }, "01"),
           image
             ? h("img", {
-                className: "gallery-image",
+                className: `gallery-image${ratioClass}`,
                 src: assetUrl(props.getAsset, image),
                 alt: alt,
               })

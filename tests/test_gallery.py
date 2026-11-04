@@ -17,13 +17,14 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 SUPPORTED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 
 
-def load_gallery_contract(source_dir):
+def load_gallery_contract(source_dir, category="photography"):
     ruby = r'''
 require "date"
 require "json"
 require "yaml"
 
 root = ARGV.fetch(0)
+category = ARGV.fetch(1)
 site = YAML.safe_load(
   File.read(File.join(root, "_data", "site.yml")),
   permitted_classes: [Date],
@@ -47,32 +48,32 @@ works = Dir.glob(File.join(root, "_works", "*.md")).sort.map do |path|
 end
 
 print JSON.generate({
-  "order" => site.dig("sections", "photography", "work_order"),
+  "order" => site.dig("sections", category, "work_order"),
   "works" => works
 })
 '''
     result = subprocess.run(
-        ["ruby", "-e", ruby, str(source_dir)],
+        ["ruby", "-e", ruby, str(source_dir), category],
         check=True,
         capture_output=True,
         text=True,
     )
     data = json.loads(result.stdout)
-    photographs = {
+    category_works = {
         work["slug"]: work
         for work in data["works"]
-        if work["category"] == "photography" and work["visible"] is True
+        if work["category"] == category and work["visible"] is True
     }
     ordered = [
-        photographs[slug]
+        category_works[slug]
         for slug in data["order"]
-        if slug in photographs
+        if slug in category_works
     ]
     ordered_slugs = {work["slug"] for work in ordered}
     fallback = sorted(
         (
             work
-            for slug, work in photographs.items()
+            for slug, work in category_works.items()
             if slug not in ordered_slugs
         ),
         key=lambda work: work["title"],
@@ -209,21 +210,8 @@ visible: false
 """,
             encoding="utf-8",
         )
-        (cls.source_dir / "_works/10-painting-fixture.md").write_text(
-            """---
-title: "Painting Fixture"
-category: painting
-image: "/assets/images/works/photo-03.jpeg"
-alt: "A painting fixture hidden by the coming soon state"
-description: ""
-location: ""
-visible: true
----
-""",
-            encoding="utf-8",
-        )
-
         cls.expected_photography = load_gallery_contract(cls.source_dir)
+        cls.expected_paintings = load_gallery_contract(cls.source_dir, "painting")
 
         build = subprocess.run(
             [
@@ -274,8 +262,9 @@ visible: true
             parser.meta_description,
             "Fixture description rendered from structured content.",
         )
-        self.assertEqual(len(parser.images), len(self.expected_photography))
-        self.assertEqual(len(parser.lightbox_buttons), len(self.expected_photography))
+        expected_count = len(self.expected_photography) + len(self.expected_paintings)
+        self.assertEqual(len(parser.images), expected_count)
+        self.assertEqual(len(parser.lightbox_buttons), expected_count)
         self.assertIn("photography", parser.ids)
         self.assertIn("painting", parser.ids)
         self.assertIn("gallery-lightbox", parser.ids)
@@ -283,16 +272,28 @@ visible: true
             parser.hero_image["src"],
             self.expected_photography[0]["image"],
         )
-        self.assertTrue(parser.painting_holding)
+        self.assertFalse(parser.painting_holding)
         self.assertEqual(
             [gallery.get("data-category") for gallery in parser.galleries],
-            ["photography"],
+            ["photography", "painting"],
         )
         self.assertNotIn("Hidden Fixture Work", body.decode("utf-8"))
 
         self.assertEqual(
             [button["data-full"] for button in parser.lightbox_buttons],
-            [work["image"] for work in self.expected_photography],
+            [
+                work["image"]
+                for work in self.expected_photography + self.expected_paintings
+            ],
+        )
+        painting_buttons = [
+            button
+            for button in parser.lightbox_buttons
+            if button.get("data-category") == "painting"
+        ]
+        self.assertEqual(
+            [button["data-title"] for button in painting_buttons],
+            [f"{index:02d}" for index in range(1, 11)],
         )
 
         for image in parser.images:
@@ -307,7 +308,10 @@ visible: true
         parser = GalleryParser()
         parser.feed(body.decode("utf-8"))
 
-        self.assertEqual(len(parser.images), len(self.expected_photography))
+        self.assertEqual(
+            len(parser.images),
+            len(self.expected_photography) + len(self.expected_paintings),
+        )
         for image in parser.images:
             status, headers, image_body = self.fetch(image["src"])
             self.assertEqual(status, 200)

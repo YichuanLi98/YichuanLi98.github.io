@@ -105,22 +105,32 @@ class CmsConfigTest(unittest.TestCase):
                 self.assertTrue(collection["create"])
                 self.assertEqual(collection["filter"], {"field": "category", "value": name})
                 fields = {field["name"]: field for field in collection["fields"]}
+                expected_fields = {
+                    "title",
+                    "category",
+                    "image",
+                    "alt",
+                    "description",
+                    "location",
+                    "date",
+                    "visible",
+                }
+                if name == "painting":
+                    expected_fields.add("display_ratio")
                 self.assertEqual(
                     set(fields),
-                    {
-                        "title",
-                        "category",
-                        "image",
-                        "alt",
-                        "description",
-                        "location",
-                        "date",
-                        "visible",
-                    },
+                    expected_fields,
                 )
                 self.assertEqual(fields["category"]["widget"], "hidden")
                 self.assertEqual(fields["category"]["default"], name)
                 self.assertFalse(fields["date"]["required"])
+                if name == "painting":
+                    ratio = fields["display_ratio"]
+                    self.assertEqual(ratio["widget"], "select")
+                    self.assertEqual(
+                        [option["value"] for option in ratio["options"]],
+                        ["square", "portrait", "landscape"],
+                    )
 
     def test_admin_shell_pins_dependencies_and_registers_previews(self):
         shell = (ADMIN_DIR / "index.html").read_text(encoding="utf-8")
@@ -138,6 +148,7 @@ class CmsConfigTest(unittest.TestCase):
         smoke_test = textwrap.dedent(
             """
             const registrations = [];
+            const templates = {};
             global.window = { h: (...args) => ({ args }) };
             global.CMS = {
               registerPreviewStyle: () => {},
@@ -146,12 +157,38 @@ class CmsConfigTest(unittest.TestCase):
                   entry: { getIn: () => undefined },
                   getAsset: () => ({ toString: () => "" }),
                 });
+                templates[name] = component;
                 registrations.push(name);
               },
             };
             require(process.argv[1]);
             if (registrations.join(",") !== "site,photography,painting") {
               throw new Error(`unexpected preview registrations: ${registrations}`);
+            }
+            const values = {
+              title: "01",
+              category: "painting",
+              image: "/assets/images/works/painting-01.jpg",
+              alt: "Painting preview",
+              display_ratio: "square",
+            };
+            const preview = templates.painting({
+              entry: { getIn: (path) => values[path[path.length - 1]] },
+              getAsset: (image) => ({ toString: () => image }),
+            });
+            function findImage(node) {
+              if (!node || !node.args) return null;
+              const props = node.args[1] || {};
+              if (node.args[0] === "img") return props;
+              for (const child of node.args.slice(2).flat()) {
+                const image = findImage(child);
+                if (image) return image;
+              }
+              return null;
+            }
+            const image = findImage(preview);
+            if (!image || !image.className.includes("painting-square")) {
+              throw new Error(`painting preview ratio class missing: ${image && image.className}`);
             }
             """
         )
