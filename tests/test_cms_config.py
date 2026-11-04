@@ -105,22 +105,32 @@ class CmsConfigTest(unittest.TestCase):
                 self.assertTrue(collection["create"])
                 self.assertEqual(collection["filter"], {"field": "category", "value": name})
                 fields = {field["name"]: field for field in collection["fields"]}
+                expected_fields = {
+                    "title",
+                    "category",
+                    "image",
+                    "alt",
+                    "description",
+                    "location",
+                    "date",
+                    "visible",
+                }
+                if name == "painting":
+                    expected_fields.add("display_ratio")
                 self.assertEqual(
                     set(fields),
-                    {
-                        "title",
-                        "category",
-                        "image",
-                        "alt",
-                        "description",
-                        "location",
-                        "date",
-                        "visible",
-                    },
+                    expected_fields,
                 )
                 self.assertEqual(fields["category"]["widget"], "hidden")
                 self.assertEqual(fields["category"]["default"], name)
                 self.assertFalse(fields["date"]["required"])
+                if name == "painting":
+                    ratio = fields["display_ratio"]
+                    self.assertEqual(ratio["widget"], "select")
+                    self.assertEqual(
+                        [option["value"] for option in ratio["options"]],
+                        ["square", "portrait", "landscape"],
+                    )
 
     def test_admin_shell_pins_dependencies_and_registers_previews(self):
         shell = (ADMIN_DIR / "index.html").read_text(encoding="utf-8")

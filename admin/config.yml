@@ -176,4 +176,12 @@ collections:
       - { name: description, label: 作品说明, widget: text, required: false }
       - { name: location, label: 地点, widget: string, required: false }
       - { name: date, label: 日期, widget: datetime, required: false, format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false }
+      - name: display_ratio
+        label: 展示比例
+        widget: select
+        default: square
+        options:
+          - { label: "方形 1:1", value: square }
+          - { label: "竖幅 1:2", value: portrait }
+          - { label: "横幅 2:1", value: landscape }
       - { name: visible, label: 在网站显示, widget: boolean, default: true }

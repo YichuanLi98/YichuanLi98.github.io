@@ -1,6 +1,7 @@
 import json
 import pathlib
 import shutil
+import struct
 import subprocess
 import tempfile
 import textwrap
@@ -95,9 +96,43 @@ def site_yaml(featured_work="one", photography_order=None):
     )
 
 
-def work_yaml(title, *, visible=True, image=None, category="photography"):
+def jpeg_dimensions(path):
+    data = path.read_bytes()
+    if not data.startswith(b"\xff\xd8"):
+        raise AssertionError(f"{path} is not a JPEG")
+    offset = 2
+    sof_markers = {
+        0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7,
+        0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF,
+    }
+    while offset + 4 <= len(data):
+        if data[offset] != 0xFF:
+            offset += 1
+            continue
+        while offset < len(data) and data[offset] == 0xFF:
+            offset += 1
+        marker = data[offset]
+        offset += 1
+        if marker in {0x01, *range(0xD0, 0xD9)}:
+            continue
+        segment_length = struct.unpack(">H", data[offset:offset + 2])[0]
+        if marker in sof_markers:
+            height, width = struct.unpack(">HH", data[offset + 3:offset + 7])
+            return width, height
+        offset += segment_length
+    raise AssertionError(f"{path} has no JPEG dimensions")
+
+
+def work_yaml(
+    title,
+    *,
+    visible=True,
+    image=None,
+    category="photography",
+    display_ratio=None,
+):
     image = image or "/assets/images/works/fixture.jpeg"
-    return textwrap.dedent(
+    document = textwrap.dedent(
         f"""
         ---
         title: {title}
@@ -110,6 +145,12 @@ def work_yaml(title, *, visible=True, image=None, category="photography"):
         ---
         """
     ).lstrip()
+    if display_ratio:
+        document = document.replace(
+            f"visible: {str(visible).lower()}",
+            f"display_ratio: {display_ratio}\nvisible: {str(visible).lower()}",
+        )
+    return document
 
 
 class ContentModelTest(unittest.TestCase):
@@ -170,8 +211,44 @@ class ContentModelTest(unittest.TestCase):
                 "description",
                 "location",
                 "date",
+                "display_ratio",
                 "visible",
             }))
+
+    def test_painting_works_have_sequence_ratios_and_assets(self):
+        expected = {
+            "01": "square",
+            "02": "square",
+            "03": "portrait",
+            "04": "square",
+            "05": "landscape",
+            "06": "landscape",
+            "07": "landscape",
+            "08": "landscape",
+            "09": "square",
+            "10": "square",
+        }
+        paintings = {
+            work["title"]: work
+            for work in (load_work(path) for path in sorted(WORKS_DIR.glob("*.md")))
+            if work["category"] == "painting"
+        }
+
+        self.assertEqual(
+            {title: work["display_ratio"] for title, work in paintings.items()},
+            expected,
+        )
+        for title, display_ratio in expected.items():
+            image_path = REPO_ROOT / paintings[title]["image"].lstrip("/")
+            self.assertTrue(image_path.is_file(), image_path)
+            width, height = jpeg_dimensions(image_path)
+            with self.subTest(title=title, display_ratio=display_ratio):
+                if display_ratio == "square":
+                    self.assertEqual(width, height)
+                elif display_ratio == "portrait":
+                    self.assertEqual(height, width * 2)
+                else:
+                    self.assertEqual(width, height * 2)
 
 
 class ContentValidatorTest(unittest.TestCase):
@@ -235,6 +312,22 @@ class ContentValidatorTest(unittest.TestCase):
         result = self.run_validator({"one.md": work})
 
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_painting_display_ratio_is_required_and_valid(self):
+        for label, display_ratio in (("missing", None), ("invalid", "panorama")):
+            with self.subTest(label=label):
+                result = self.run_validator(
+                    {
+                        "one.md": work_yaml("Photo"),
+                        "painting.md": work_yaml(
+                            "Painting",
+                            category="painting",
+                            display_ratio=display_ratio,
+                        ),
+                    }
+                )
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("display_ratio", result.stderr)
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ require "yaml"
 SITE_KEYS = %w[owner seo navigation hero sections footer contact].freeze
 WORK_REQUIRED_KEYS = %w[title category image alt visible].freeze
 WORK_CATEGORIES = %w[photography painting].freeze
+PAINTING_DISPLAY_RATIOS = %w[square portrait landscape].freeze
 SUPPORTED_IMAGE_EXTENSIONS = %w[.jpg .jpeg .png .webp].freeze
 MAX_IMAGE_BYTES = 15 * 1024 * 1024
 
@@ -84,6 +85,9 @@ def validate_works(works)
 
     unless WORK_CATEGORIES.include?(work["category"])
       errors << "#{path}: category must be photography or painting"
+    end
+    if work["category"] == "painting" && !PAINTING_DISPLAY_RATIOS.include?(work["display_ratio"])
+      errors << "#{path}: display_ratio must be square, portrait, or landscape for painting"
     end
     errors << "#{path}: visible must be true or false" unless [true, false].include?(work["visible"])
   end
