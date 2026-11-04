@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Keep the ten supplied source images untouched.
-- Crop only; do not redraw, retouch, recolor, sharpen, or clean the artwork.
+- Crop scanner margins without redrawing, retouching, recoloring, sharpening, or cleaning the artwork; if an exact-ratio crop would remove painted content, preserve it with neutral paper-color side padding.
 - Titles are exactly `01` through `10`, in supplied order.
 - Square works are `1:1`, portrait work `03` is `1:2`, and landscape works `05`–`08` are `2:1`.
 - Photography keeps its current `3:4` and `4:3` behavior.
@@ -66,7 +66,7 @@ Expected: FAIL because no Painting works or `display_ratio` field exists.
 
 - [ ] **Step 3: Create and inspect the ten cropped derivatives**
 
-Use the built-in image edit flow once per source image with the source as the edit target. Require a crop-only edit that removes blank scan margins, preserves every drawing mark and tonal value, and targets the ratio declared above. Save accepted outputs as `painting-01.jpg` through `painting-10.jpg`; use `sips` only to normalize the final canvas to the exact ratio if the generated dimensions are not exact. Inspect each derivative side-by-side with its source and reject any output that alters artwork or cuts meaningful content.
+Use the built-in image edit flow once per source image with the source as the edit target. Require an edit that removes blank scan margins, preserves every drawing mark and tonal value, and targets the ratio declared above. Save accepted outputs as `painting-01.jpg` through `painting-10.jpg`; use `sips` to normalize the final canvas to the exact ratio, adding neutral paper-color side padding where cropping alone would cut painted content. Inspect each derivative side-by-side with its source and reject any output that alters artwork or cuts meaningful content.
 
 - [ ] **Step 4: Add work records, CMS field, and validation**
 

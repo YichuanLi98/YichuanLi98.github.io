@@ -7,7 +7,7 @@ Publish ten supplied ink landscape works in the existing Painting section so vis
 ## Goals
 
 - Keep every supplied source image untouched outside the repository.
-- Create a separate cropped website copy for each work; crop only and do not redraw, retouch, recolor, sharpen, or clean the artwork.
+- Create a separate website copy for each work; crop scanner margins without redrawing, retouching, recoloring, sharpening, or cleaning the artwork.
 - Turn off the Painting “Coming soon” state and render the works through the existing CMS-backed gallery and lightbox.
 - Use the titles `01` through `10`, in the supplied order.
 - Keep each work editable through the existing Painting collection in the browser CMS.
@@ -20,7 +20,7 @@ Determine composition from the effective painted area after the large white scan
 - Portrait `1:2`: work `03`.
 - Landscape `2:1`: works `05`, `06`, `07`, and `08`.
 
-The physical website copies will already have these ratios. Gallery thumbnails use the complete cropped copy rather than applying an additional destructive crop. The lightbox uses the same cropped copy at `object-fit: contain`.
+The physical website copies will already have these ratios. Where an exact-ratio crop would remove painted content, retain the complete painted area and add neutral paper-color side padding instead of tightening the crop. Gallery thumbnails use the complete prepared copy rather than applying an additional destructive crop. The lightbox uses the same copy at `object-fit: contain`.
 
 ## Site Content and Layout
 
@@ -40,6 +40,6 @@ The physical website copies will already have these ratios. Gallery thumbnails u
 ## Non-goals and Failure Conditions
 
 - Do not modify or overwrite the ten supplied originals.
-- Do not alter the drawing marks, tonal values, paper color, or composition beyond cropping blank margins to the agreed ratios.
+- Do not alter the drawing marks, tonal values, paper color, or composition; use paper-color padding when cropping alone cannot reach the agreed ratio without cutting painted content.
 - Do not change the Photography gallery proportions or reorder existing photography works.
 - Do not publish if a crop cuts through meaningful painted content or if any work is missing from the CMS, gallery, or lightbox.
