@@ -34,11 +34,21 @@ sections:
       - between-smoke-and-silence
   painting:
     eyebrow: 02 / Painting
-    heading: The next collection.
-    note: Paintings will join the archive soon.
-    coming_soon: true
+    heading: Studies in ink and landscape.
+    note: Selected landscape studies from an ongoing drawing practice.
+    coming_soon: false
     orbit_text: Painting · Coming soon · Painting · Coming soon ·
-    work_order: []
+    work_order:
+      - painting-01
+      - painting-02
+      - painting-03
+      - painting-04
+      - painting-05
+      - painting-06
+      - painting-07
+      - painting-08
+      - painting-09
+      - painting-10
 footer:
   signature: Yichuan Li
   discipline: Photography & Painting

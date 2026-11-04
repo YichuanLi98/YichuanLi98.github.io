@@ -106,7 +106,7 @@ test("gallery thumbnail ratio follows the image orientation", async ({ page }) =
     await page.setViewportSize(viewport);
     await page.goto("/");
 
-    const images = page.locator(".gallery-image");
+    const images = page.locator('[data-category="photography"] .gallery-image');
     const imageCount = await images.count();
     let landscapeCount = 0;
     let portraitCount = 0;
@@ -147,6 +147,56 @@ test("gallery thumbnail ratio follows the image orientation", async ({ page }) =
       () => page.locator(".lightbox-image").evaluate((image) => getComputedStyle(image).objectFit),
     ).toBe("contain");
     await page.keyboard.press("Escape");
+  }
+});
+
+
+test("painting gallery uses declared ratios", async ({ page }) => {
+  const expected = new Map([
+    ["01", ["painting-square", 1]],
+    ["02", ["painting-square", 1]],
+    ["03", ["painting-portrait", 1 / 2]],
+    ["04", ["painting-square", 1]],
+    ["05", ["painting-landscape", 2]],
+    ["06", ["painting-landscape", 2]],
+    ["07", ["painting-landscape", 2]],
+    ["08", ["painting-landscape", 2]],
+    ["09", ["painting-square", 1]],
+    ["10", ["painting-square", 1]],
+  ]);
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+
+    const items = page.locator('[data-category="painting"] .gallery-item');
+    await expect(items).toHaveCount(expected.size);
+    for (const [title, [expectedClass, expectedRatio]] of expected) {
+      const item = page.locator(`[data-category="painting"] [data-title="${title}"]`);
+      const image = item.locator(".gallery-image");
+      await image.scrollIntoViewIfNeeded();
+      await expect.poll(
+        () => image.evaluate((node) => node.complete && node.naturalWidth > 0),
+      ).toBe(true);
+      const frame = await image.evaluate((node) => ({
+        classes: Array.from(node.classList),
+        height: node.offsetHeight,
+        itemHeight: node.closest(".gallery-item").offsetHeight,
+        width: node.offsetWidth,
+      }));
+      expect(frame.classes).toContain(expectedClass);
+      expect(frame.width / frame.height).toBeCloseTo(expectedRatio, 2);
+      expect(Math.abs(frame.itemHeight - frame.height)).toBeLessThanOrEqual(1);
+    }
+
+    const dimensions = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
   }
 });
 

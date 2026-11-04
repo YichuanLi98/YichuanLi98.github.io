@@ -148,6 +148,7 @@ class CmsConfigTest(unittest.TestCase):
         smoke_test = textwrap.dedent(
             """
             const registrations = [];
+            const templates = {};
             global.window = { h: (...args) => ({ args }) };
             global.CMS = {
               registerPreviewStyle: () => {},
@@ -156,12 +157,38 @@ class CmsConfigTest(unittest.TestCase):
                   entry: { getIn: () => undefined },
                   getAsset: () => ({ toString: () => "" }),
                 });
+                templates[name] = component;
                 registrations.push(name);
               },
             };
             require(process.argv[1]);
             if (registrations.join(",") !== "site,photography,painting") {
               throw new Error(`unexpected preview registrations: ${registrations}`);
+            }
+            const values = {
+              title: "01",
+              category: "painting",
+              image: "/assets/images/works/painting-01.jpg",
+              alt: "Painting preview",
+              display_ratio: "square",
+            };
+            const preview = templates.painting({
+              entry: { getIn: (path) => values[path[path.length - 1]] },
+              getAsset: (image) => ({ toString: () => image }),
+            });
+            function findImage(node) {
+              if (!node || !node.args) return null;
+              const props = node.args[1] || {};
+              if (node.args[0] === "img") return props;
+              for (const child of node.args.slice(2).flat()) {
+                const image = findImage(child);
+                if (image) return image;
+              }
+              return null;
+            }
+            const image = findImage(preview);
+            if (!image || !image.className.includes("painting-square")) {
+              throw new Error(`painting preview ratio class missing: ${image && image.className}`);
             }
             """
         )

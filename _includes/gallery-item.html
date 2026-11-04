@@ -9,7 +9,7 @@
 >
   <span class="work-number" aria-hidden="true">{% if include.index < 10 %}0{% endif %}{{ include.index }}</span>
   <img
-    class="gallery-image"
+    class="gallery-image{% if include.work.category == 'painting' and include.work.display_ratio %} painting-{{ include.work.display_ratio | escape }}{% endif %}"
     src="{{ include.work.image | escape }}"
     alt="{{ include.work.alt | escape }}"
     {% unless include.index == 1 %}loading="lazy"{% endunless %}
